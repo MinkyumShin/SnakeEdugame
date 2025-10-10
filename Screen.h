@@ -1,7 +1,7 @@
 #pragma once
 #include<windows.h>
 #include<string>
-
+#include<vector>
 
 // 1280x720, 1366x768, 1600x900, 1920x1080, 2560x1440, 3840x2160, 5120x2880, 7680x4320
 class Screen
@@ -44,4 +44,50 @@ private:
 		this->colSize = columns;
 		this->rowSize = rows;
 	}
+};
+
+// SnakeQueue
+class SnakeQueue
+{
+public:
+	bool empty() const noexcept { return dq.empty(); }
+	size_t size() const noexcept { return dq.size(); }
+
+	// 새 머리를 앞으로 추가
+	void pushHead(const Point& p) {
+		if (capacity && dq.size() >= capacity) {
+			throw std::overflow_error("SnakeQueue: capacity exceeded");
+		}
+		dq.push_front(p);
+	}
+
+	// 꼬리 제거
+	void popTail() {
+		if (dq.empty()) throw std::underflow_error("SnakeQueue: empty");
+		dq.pop_back();
+	}
+
+	// 현재 머리(가장 앞)
+	const Point& head() const {
+		if (dq.empty()) throw std::underflow_error("SnakeQueue: empty");
+		return dq.front();
+	}
+
+	// 현재 꼬리(가장 뒤)
+	const Point& tail() const {
+		if (dq.empty()) throw std::underflow_error("SnakeQueue: empty");
+		return dq.back();
+	}
+
+	bool contains(const Point& p) const {
+		return std::find(dq.begin(), dq.end(), p) != dq.end();
+	}
+
+	void clear() noexcept { dq.clear(); }
+
+	std::vector<Point> toVector() const { return std::vector<Point>(dq.begin(), dq.end()); }
+	void fromVector(const std::vector<Point>& v) { dq.assign(v.begin(), v.end()); }
+private:
+	std::deque<Point> dq;
+	int capacity;
 };
