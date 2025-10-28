@@ -4,6 +4,7 @@
 *.exe
 *.out
 queue_test
+main
 
 # Backup/editor files
 *~
