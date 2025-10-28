@@ -1,0 +1,18 @@
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.out
+queue_test
+
+# Backup/editor files
+*~
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/
