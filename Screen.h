@@ -1,6 +1,12 @@
 #pragma once
+<<<<<<< HEAD
 #include <windows.h>
 #include <string>
+=======
+#include<windows.h>
+#include<string>
+
+>>>>>>> 61c3e1c4a5fe5db3634e4383b3a9936349c9ab1f
 
 // 1280x720, 1366x768, 1600x900, 1920x1080, 2560x1440, 3840x2160, 5120x2880, 7680x4320
 class Screen
@@ -9,8 +15,12 @@ public:
 	Screen(int w, int h) {
 		this->width = w;
 		this->height = h;
+<<<<<<< HEAD
 		// 원래 코드에 있던 잘못된 조건식을 고쳤습니다.
 		if (this->width != 0 && this->height != 0)
+=======
+		if (!this->width != 0 && this->height != 0)
+>>>>>>> 61c3e1c4a5fe5db3634e4383b3a9936349c9ab1f
 			this->setScreen();
 		this->updatShape();
 	}
