@@ -4,7 +4,7 @@
 #include <sstream>
 #include <algorithm>
 #include "../utils/FileUtils.h"
-#define FILE_SCORES "scores.txt"
+#define FILE_SCORES "data/scores.txt"
 
 struct PlayerScore
 {
@@ -22,16 +22,7 @@ public:
     void init_score_board();
     void display_score_board();
     bool add_score(const std::string& name, int score);
-
-    void fake_data(){
-        add_score("Alice", 150);
-        add_score("Bob", 200);
-        add_score("Charlie", 120);
-        add_score("Dave", 180);
-    }
 };
-
-
 
 ScoreBoard::ScoreBoard() {
      init_score_board();
@@ -68,7 +59,7 @@ bool ScoreBoard::add_score(const std::string& name, int score) {
     }
     PlayerScore new_score{name, score};
     scores.push_back(new_score);
-    // appendFile(FILE_SCORES, name + "," + std::to_string(score));
+    appendFile(FILE_SCORES, name + "," + std::to_string(score));
     sort_scores_desc();
     return true;
 }
@@ -76,7 +67,7 @@ bool ScoreBoard::add_score(const std::string& name, int score) {
 void ScoreBoard::display_score_board() {
     std::cout << "========= Score Board =========" << std::endl << std::endl << std::endl;
 	std::cout << "Player Name \t\tScore" << std::endl;
-	std::cout << "------------------------------" << std::endl;
+	std::cout << "-------------------------------" << std::endl;
     for (const auto& entry : scores) 
         std::cout << entry.player_name << "\t\t\t" << entry.score << std::endl;
 

@@ -13,23 +13,24 @@ public:
 
 GameMenu::GameMenu() {
     selected_menu = -1;
-    score_board = ScoreBoard();
 }
 
 void GameMenu::show_menu(){
-        std::cout << "1. 게임시작" << std::endl;
-        std::cout << "2. 스코어보드" << std::endl;
-        std::cout << "0. 종료" << std::endl;
+        std::cout << "1. start\n";
+        std::cout << "2. score\n";
+        std::cout << "0. exit\n";
         menu_check:
-            printf("선택: ");
+            printf("Choose: ");
             std::cin >> selected_menu;
             if(selected_menu == 1){
             }	
             else if(selected_menu == 2){
+                system("cls");
+                score_board.display_score_board();
             }
             
             else if(selected_menu == 0){
-                std::cout << "게임을 종료합니다." << std::endl;
+                std::cout << "Game exited.\n";
                 exit(0);
             }
             else goto menu_check;

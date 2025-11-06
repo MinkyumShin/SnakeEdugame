@@ -1,6 +1,6 @@
 #include "features/GameMenu.h"
- 
 
+ 
 
 int main(){
 
@@ -10,5 +10,5 @@ int main(){
     // while(isOver){
     //     game_menu.show_menu();
     // }
-    return 0;
+    
 }
