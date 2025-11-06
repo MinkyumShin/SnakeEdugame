@@ -84,4 +84,9 @@ public:
         }
         return false;
     }
+
+    // --- 복원용 설정자 추가 ---
+    void setBody(const std::vector<Point> &new_body) { body = new_body; }
+    void setDirection(Direction dir) { current_dir = dir; }
+    void setGrowFlag(bool f) { grow_flag = f; }
 };

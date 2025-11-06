@@ -1,12 +1,19 @@
 ﻿#include <iostream>
 #include <stdexcept>
+#include <vector>
+#include "Point.h"
 
+// GameState: 스택에 저장될 게임 상태 (뱀 몸통, 방향, 점수, 먹이/아이템 위치, Bag 내용)
 struct GameState {
-    //int score .. etc The struct of game state
+    std::vector<Point> snake_body;
+    int dir = 0; // Direction을 int로 저장 (cast 사용)
+    int score = 0;
+    Point food_pos = {-1, -1};
+    Point r_pos = {-1, -1};
+    std::vector<Point> bag_contents;
 };
 
-
-//Custom Stack
+//Custom Stack for GameState
 class MyStack {
 private:
     static const int maxSize = 100;
@@ -66,11 +73,3 @@ bool use_undo_item(GameState& current_state) {
     return true;
 
 }
-
-//GameState my_game_state;
-//
-////when get item or score 
-//save_state(my_game_state);
-//
-////if use undo item
-//use_undo_item(my_game_state);
