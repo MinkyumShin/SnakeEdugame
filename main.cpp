@@ -214,7 +214,7 @@ int main()
 	// 첫 번째 먹이 생성
 	spawnFood(&emptySpaces);
 
-	// (초기에는 R 자동 생성하지 않음 — 이제 먹이를 3개 먹을 때마다 생성)
+	// (초기에는 R 자동 생성하지 않음 — 이제 먹이를 2개 먹을 때마다 생성)
 	// spawnR(&emptySpaces);
 
 	clearScreen();
@@ -419,7 +419,7 @@ bool logic(SnakeMap *map, Bag *bag, Snake *snake, Point &old_tail, Point &new_he
         save_state(gs);
         ++undo_item_count;
 
-        // R을 즉시 재생성하지 않음 — 먹이를 3개 먹을 때 생성되도록 변경
+        // R을 즉시 재생성하지 않음 — 먹이를 2개 먹을 때 생성되도록 변경
         r_item_pos = {-1, -1};
         prev_r_pos = {-1, -1};
     }
