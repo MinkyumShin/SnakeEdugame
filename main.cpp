@@ -40,7 +40,7 @@ Point prev_r_pos = {-1, -1};
 // undo 요청 플래그 (입력에서 설정)
 bool undo_request = false;
 
-// 먹이 섭취 카운터: 3개 먹을 때마다 R 생성
+// 먹이 섭취 카운터: 2개 먹을 때마다 R 생성
 int foods_eaten_count = 0;
 
 // 콘솔 커서 위치를 이동시키는 함수
