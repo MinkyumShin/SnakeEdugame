@@ -214,7 +214,7 @@ int main()
 	// 첫 번째 먹이 생성
 	spawnFood(&emptySpaces);
 
-	// (초기에는 R 자동 생성하지 않음 — 이제 먹이를 2개 먹을 때마다 생성)
+	// (초기에는 R 자동 생성하지 않음 — 이제 먹이를 3개 먹을 때마다 생성)
 	// spawnR(&emptySpaces);
 
 	clearScreen();
@@ -269,7 +269,9 @@ int main()
 				score = restored.score;
 				food_pos = restored.food_pos;
 				prev_food_pos = {-1, -1};
-				r_item_pos = restored.r_pos;
+				// 복원 시 R 아이템이 맵에 남지 않도록 비우기
+				// (undo를 사용하면 해당 R은 소비된 것으로 취급)
+				r_item_pos = {-1, -1};
 				prev_r_pos = {-1, -1};
 				emptySpaces.setContents(restored.bag_contents);
 
@@ -394,9 +396,9 @@ bool logic(SnakeMap *map, Bag *bag, Snake *snake, Point &old_tail, Point &new_he
         score += 10;
         spawnFood(bag); // 새로운 먹이 생성
 
-        // 먹이 카운트 증가 -> 3개 먹으면 R 생성
+        // 먹이 카운트 증가 -> 2개 먹으면 R 생성
         ++foods_eaten_count;
-        if (foods_eaten_count >= 3)
+        if (foods_eaten_count >= 2)
         {
             spawnR(bag);
             foods_eaten_count = 0;
@@ -404,7 +406,7 @@ bool logic(SnakeMap *map, Bag *bag, Snake *snake, Point &old_tail, Point &new_he
     }
     else if (ateR)
     {
-        // R 아이템 섭취: 꼬리/머리 처리(성장X), 그 상황을 스택에 저장하고 R 재생성
+        // R 아이템 섭취: 꼬리/머리 처리(성장X), 그 상황을 스택에 저장
         bag->add(old_tail);
         bag->remove(new_head);
 
