@@ -1,5 +1,5 @@
 # SnakeEdugame
-# 화경설정
+# 환경설정
 Embarcadero_Dev-Cpp_6.3_TDM-GCC_9.2
 다운로드 링크: https://github.com/Embarcadero/Dev-Cpp/releases
 
@@ -10,3 +10,7 @@ Embarcadero_Dev-Cpp_6.3_TDM-GCC_9.2
 4. 바이너리가 완료되면 실행아이건을 클릭 (F10 클릭도 됨)
 5. 터미널화면에서 사이즈 성정 (예: 120 30 입력후 enter)
 6. 이동방법: a w s d 키를 사용하기
+
+
+스택기능 구현-먹이를 3번 먹으면 되돌리기 아이템 생성
+r 버튼 누르면 되돌리기 실행

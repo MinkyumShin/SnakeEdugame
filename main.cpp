@@ -15,6 +15,8 @@
 #include "SnakeMap.h"
 #include "Bag.h"
 #include "Snake.h"
+#include "DiffManager.h"
+#include "UndoItem.h" // undo 기능
 
 using namespace std;
 
@@ -24,12 +26,24 @@ const char MAP_CHAR = '#';
 const char SNAKE_HEAD_CHAR = '@';
 const char SNAKE_BODY_CHAR = 'o';
 const char FOOD_CHAR = '$';
-const int GAME_SPEED_MS = 100; // 게임 속도 (100ms마다 업데이트)
-
+const char R_CHAR = 'R';				 // R 아이템 문자
+int GAME_SPEED_MS = START;				 // 기본 속도는 START에서 시작 (DiffManager.h)
+int currentDirection = RIGHT;			 // 현재 방향 추적
+const int VERTICAL_SPEED_MULTIPLIER = 2; // 세로 이동일 때 곱할 값
 bool gameOver = false;
 int score = 0;
 Point food_pos = {-1, -1};		// 현재 먹이 위치 (row, col)
 Point prev_food_pos = {-1, -1}; // 이전 프레임 먹이 위치 (잔상 제거용)
+
+// R 아이템 관련
+Point r_item_pos = {-1, -1};
+Point prev_r_pos = {-1, -1};
+
+// undo 요청 플래그 (입력에서 설정)
+bool undo_request = false;
+
+// 먹이 섭취 카운터: 2개 먹을 때마다 R 생성
+int foods_eaten_count = 0;
 
 // 콘솔 커서 위치를 이동시키는 함수
 void gotoXY(int x, int y)
@@ -154,6 +168,7 @@ static void sleep_ms(int ms) { Sleep(ms); }
 
 void initializeBag(SnakeMap *map, Bag *bag, Snake *snake);
 void spawnFood(Bag *bag);
+void spawnR(Bag *bag); // R 아이템 생성 함수
 
 bool logic(SnakeMap *map, Bag *bag, Snake *snake, Point &old_tail, Point &new_head);
 
@@ -201,6 +216,9 @@ int main()
 	// 첫 번째 먹이 생성
 	spawnFood(&emptySpaces);
 
+	// (초기에는 R 자동 생성하지 않음 — 이제 먹이를 3개 먹을 때마다 생성)
+	// spawnR(&emptySpaces);
+
 	clearScreen();
 	cout << "=== C++ Console Snake Game ===" << endl;
 	cout << "Press any key to start..." << endl;
@@ -222,8 +240,13 @@ int main()
 		gotoXY(food_pos.col, food_pos.row);
 		putchar(FOOD_CHAR);
 	}
+	if (r_item_pos.row != -1)
+	{
+		gotoXY(r_item_pos.col, r_item_pos.row);
+		putchar(R_CHAR);
+	}
 	gotoXY(0, map_rows);
-	cout << "Score: " << score << " | Length: " << init_body.size() << "  ";
+	cout << "Score: " << score << " | Length: " << init_body.size() << " | Undo: " << undo_item_count << "  ";
 
 	while (!gameOver)
 	{
@@ -235,7 +258,74 @@ int main()
 
 		drawDynamicUpdate(&snakeMap, &snake, old_tail, ate);
 
-		sleep_ms(GAME_SPEED_MS);
+		// undo 요청 처리: 스택에서 복원된 상태를 현재 게임에 적용
+		if (undo_request)
+		{
+			GameState restored;
+			if (use_undo_item(restored))
+			{
+				// 복원 내용 적용
+				snake.setBody(restored.snake_body);
+				snake.setDirection(static_cast<Direction>(restored.dir));
+				snake.setGrowFlag(false);
+				score = restored.score;
+				food_pos = restored.food_pos;
+				prev_food_pos = {-1, -1};
+				// 복원 시 R 아이템이 맵에 남지 않도록 비우기
+				// (undo를 사용하면 해당 R은 소비된 것으로 취급)
+				r_item_pos = {-1, -1};
+				prev_r_pos = {-1, -1};
+				emptySpaces.setContents(restored.bag_contents);
+
+				// 전체 다시 그리기
+				clearScreen();
+				drawStaticMap(&snakeMap);
+
+				const auto &body = snake.getBody();
+				for (size_t i = 0; i < body.size(); ++i)
+				{
+					const Point &p = body[i];
+					gotoXY(p.col, p.row);
+					putchar(i == 0 ? SNAKE_HEAD_CHAR : SNAKE_BODY_CHAR);
+				}
+				if (food_pos.row != -1)
+				{
+					gotoXY(food_pos.col, food_pos.row);
+					putchar(FOOD_CHAR);
+				}
+				if (r_item_pos.row != -1)
+				{
+					gotoXY(r_item_pos.col, r_item_pos.row);
+					putchar(R_CHAR);
+				}
+				gotoXY(0, snakeMap.getRow());
+				cout << "Score: " << score << " | Length: " << body.size() << " | Undo: " << undo_item_count << "  ";
+			}
+			undo_request = false;
+		}
+
+		// 점수 기반 난이도와 이동 방향에 따른 속도 보정
+		switch (score / 30) // 30점마다 난이도 상승
+		{
+		case 0:
+			GAME_SPEED_MS = START;
+			break;
+		case 1:
+			GAME_SPEED_MS = EASY;
+			break;
+		case 2:
+			GAME_SPEED_MS = MEDIUM;
+			break;
+		default:
+			GAME_SPEED_MS = HARD;
+			break;
+		}
+		int delay_ms = GAME_SPEED_MS;
+		if (currentDirection == UP || currentDirection == DOWN)
+		{
+			delay_ms *= VERTICAL_SPEED_MULTIPLIER; // 수직 이동 시 딜레이 보정
+		}
+		sleep_ms(delay_ms);
 	}
 
 	// 게임 오버
@@ -249,70 +339,88 @@ int main()
 
 	return 0;
 }
-
-// 맵의 빈 공간 좌표 Bag에 추가, 뱀이 차지한 공간 제거
-void initializeBag(SnakeMap *map, Bag *bag, Snake *snake)
-{
-	int map_rows = map->getRow();
-	int map_cols = map->getColumn();
-	int **board = map->getBoard();
-
-	// 맵 순회하며 벽이 아닌 칸(0)을 Bag에 추가
-	for (int i = 0; i < map_rows; i++)
-	{
-		for (int j = 0; j < map_cols; j++)
-		{
-			if (board[i][j] == 0)
-			{
-				bag->add({i, j});
-			}
-		}
-	}
-
-	// 뱀의 초기 위치는 Bag에서 제거
-	for (const auto &segment : snake->getBody())
-	{
-		bag->remove(segment);
-	}
+gameOver = true;
+return;
 }
 
-void spawnFood(Bag *bag)
+prev_food_pos = {-1, -1};
+food_pos = bag->getRandom();
+}
+
+currentDirection = UP;
+// R 아이템 생성 (먹이와 유사하게 bag에서 랜덤 선택)
+void spawnR(Bag *bag)
 {
 	if (bag->isEmpty())
+		currentDirection = DOWN;
 	{
-		prev_food_pos = food_pos;
-		food_pos = {-1, -1};
-		gameOver = true;
+		prev_r_pos = r_item_pos;
+		r_item_pos = {-1, -1};
 		return;
+		currentDirection = LEFT;
 	}
 
-	prev_food_pos = {-1, -1};
-	food_pos = bag->getRandom();
+	prev_r_pos = {-1, -1};
+	r_item_pos = bag->getRandom();
+	currentDirection = RIGHT;
 }
 
 // old_tail - 이동 전 꼬리 좌표 (꼬리 지우기용)
 // new_head - 이동 후 머리 좌표
 
+case 'r':
+case 'R':
+undo_request = true;
+break;
 bool logic(SnakeMap *map, Bag *bag, Snake *snake, Point &old_tail, Point &new_head)
 {
-	old_tail = snake->getBody().back();
 	snake->move();
 	new_head = snake->getHead();
 
 	bool ate = (new_head == food_pos);
+	bool ateR = (new_head == r_item_pos);
 
 	// bag 업데이트
-	if (!ate)
+	if (!ate && !ateR)
 	{
 		bag->add(old_tail);
 		bag->remove(new_head);
 	}
-	else
+	else if (ate)
 	{
 		// 먹이 섭취 처리
 		snake->grow();
 		score += 10;
 		spawnFood(bag); // 새로운 먹이 생성
+
+		// 먹이 카운트 증가 -> 2개 먹으면 R 생성
+		++foods_eaten_count;
+		if (foods_eaten_count >= 2)
+		{
+			spawnR(bag);
+			foods_eaten_count = 0;
+		}
+	}
+	else if (ateR)
+	{
+		// R 아이템 섭취: 꼬리/머리 처리(성장X), 그 상황을 스택에 저장
+		bag->add(old_tail);
+		bag->remove(new_head);
+
+		// 상태 저장 (먹은 상황 저장)
+		GameState gs;
+		gs.snake_body = snake->getBody();
+		gs.dir = static_cast<int>(snake->getDirection());
+		gs.score = score;
+		gs.food_pos = food_pos;
+		gs.r_pos = r_item_pos;
+		gs.bag_contents = bag->getContents();
+		save_state(gs);
+		++undo_item_count;
+
+		// R을 즉시 재생성하지 않음 — 먹이를 2개 먹을 때 생성되도록 변경
+		r_item_pos = {-1, -1};
+		prev_r_pos = {-1, -1};
 	}
 
 	int **board = map->getBoard();
@@ -395,14 +503,60 @@ void drawDynamicUpdate(SnakeMap *map, Snake *snake, const Point &old_tail, bool 
 		gotoXY(food_pos.col, food_pos.row);
 		putchar(FOOD_CHAR);
 	}
+	// R 아이템 그리기
+	if (r_item_pos.row != -1)
+	{
+		gotoXY(r_item_pos.col, r_item_pos.row);
+		putchar(R_CHAR);
+	}
+	// 이전 R 잔상 제거
+	if (prev_r_pos.row != -1 && prev_r_pos != r_item_pos)
+	{
+		gotoXY(prev_r_pos.col, prev_r_pos.row);
+		putchar(' ');
+		prev_r_pos = {-1, -1};
+	}
 
 	// 상태 라인 갱신
 	gotoXY(0, map_rows);
-	cout << "Score: " << score << " | Length: " << body.size() << "  ";
+	cout << "Score: " << score << " | Length: " << body.size() << " | Undo: " << undo_item_count << "  ";
 }
 
 void input(Snake *snake)
 {
+<<<<<<< HEAD
+	if (_kbhit())
+	{
+		char key = _getch();
+		switch (key)
+		{
+		case 'w':
+		case 'W':
+			snake->changeDirection(UP);
+			currentDirection = UP;
+			break;
+		case 's':
+		case 'S':
+			snake->changeDirection(DOWN);
+			currentDirection = DOWN;
+			break;
+		case 'a':
+		case 'A':
+			snake->changeDirection(LEFT);
+			currentDirection = LEFT;
+			break;
+		case 'd':
+		case 'D':
+			snake->changeDirection(RIGHT);
+			currentDirection = RIGHT;
+			break;
+		case 'x':
+		case 'X':
+			gameOver = true;
+			break;
+		}
+	}
+=======
 	if (_kbhit())
 	{
 		char key = _getch();
@@ -428,6 +582,11 @@ void input(Snake *snake)
 		case 'X':
 			gameOver = true;
 			break;
+		case 'r':
+		case 'R':
+			undo_request = true;
+			break;
 		}
 	}
+>>>>>>> origin/stack_undoitem_ver3
 }
