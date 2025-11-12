@@ -46,6 +46,10 @@ public:
     }
 
     bool isEmpty() const { return contents.empty(); }
+
+    // --- 복원/저장을 위한 접근자 추가 ---
+    std::vector<Point> getContents() const { return contents; }
+    void setContents(const std::vector<Point> &v) { contents = v; }
 };
 
 #endif // BAG_H
