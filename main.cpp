@@ -15,8 +15,7 @@
 #include "SnakeMap.h"
 #include "Bag.h"
 #include "Snake.h"
-#include "DiffManager.h"
-#include "UndoItem.h" // undo 기능
+#include "UndoItem.h" // undo 기능 (선택 브랜치: stack_undoitem_ver3)
 
 using namespace std;
 
@@ -26,10 +25,9 @@ const char MAP_CHAR = '#';
 const char SNAKE_HEAD_CHAR = '@';
 const char SNAKE_BODY_CHAR = 'o';
 const char FOOD_CHAR = '$';
-const char R_CHAR = 'R';				 // R 아이템 문자
-int GAME_SPEED_MS = START;				 // 기본 속도는 START에서 시작 (DiffManager.h)
-int currentDirection = RIGHT;			 // 현재 방향 추적
-const int VERTICAL_SPEED_MULTIPLIER = 2; // 세로 이동일 때 곱할 값
+const char R_CHAR = 'R';			  // R 아이템 문자
+static const int GAME_SPEED_MS = 100; // 단순 고정 속도 (diff 브랜치 난이도 기능 제거)
+int currentDirection = RIGHT;		  // 현재 방향 추적 (방향 표시만 유지)
 bool gameOver = false;
 int score = 0;
 Point food_pos = {-1, -1};		// 현재 먹이 위치 (row, col)
@@ -252,35 +250,28 @@ int main()
 	{
 		input(&snake);
 
-		Point old_tail;
+		Point old_tail = snake.getBody().back();
 		Point new_head;
 		bool ate = logic(&snakeMap, &emptySpaces, &snake, old_tail, new_head);
 
 		drawDynamicUpdate(&snakeMap, &snake, old_tail, ate);
 
-		// undo 요청 처리: 스택에서 복원된 상태를 현재 게임에 적용
+		// undo 처리 (간단 버전)
 		if (undo_request)
 		{
 			GameState restored;
 			if (use_undo_item(restored))
 			{
-				// 복원 내용 적용
 				snake.setBody(restored.snake_body);
 				snake.setDirection(static_cast<Direction>(restored.dir));
-				snake.setGrowFlag(false);
 				score = restored.score;
 				food_pos = restored.food_pos;
-				prev_food_pos = {-1, -1};
-				// 복원 시 R 아이템이 맵에 남지 않도록 비우기
-				// (undo를 사용하면 해당 R은 소비된 것으로 취급)
 				r_item_pos = {-1, -1};
 				prev_r_pos = {-1, -1};
 				emptySpaces.setContents(restored.bag_contents);
-
-				// 전체 다시 그리기
+				// 전체 리프레시
 				clearScreen();
 				drawStaticMap(&snakeMap);
-
 				const auto &body = snake.getBody();
 				for (size_t i = 0; i < body.size(); ++i)
 				{
@@ -293,39 +284,13 @@ int main()
 					gotoXY(food_pos.col, food_pos.row);
 					putchar(FOOD_CHAR);
 				}
-				if (r_item_pos.row != -1)
-				{
-					gotoXY(r_item_pos.col, r_item_pos.row);
-					putchar(R_CHAR);
-				}
 				gotoXY(0, snakeMap.getRow());
 				cout << "Score: " << score << " | Length: " << body.size() << " | Undo: " << undo_item_count << "  ";
 			}
 			undo_request = false;
 		}
 
-		// 점수 기반 난이도와 이동 방향에 따른 속도 보정
-		switch (score / 30) // 30점마다 난이도 상승
-		{
-		case 0:
-			GAME_SPEED_MS = START;
-			break;
-		case 1:
-			GAME_SPEED_MS = EASY;
-			break;
-		case 2:
-			GAME_SPEED_MS = MEDIUM;
-			break;
-		default:
-			GAME_SPEED_MS = HARD;
-			break;
-		}
-		int delay_ms = GAME_SPEED_MS;
-		if (currentDirection == UP || currentDirection == DOWN)
-		{
-			delay_ms *= VERTICAL_SPEED_MULTIPLIER; // 수직 이동 시 딜레이 보정
-		}
-		sleep_ms(delay_ms);
+		sleep_ms(GAME_SPEED_MS); // 고정 속도 딜레이
 	}
 
 	// 게임 오버
@@ -339,41 +304,60 @@ int main()
 
 	return 0;
 }
-gameOver = true;
-return;
+
+// 맵의 빈 칸을 Bag에 채우고, 뱀의 현재 위치는 제거
+void initializeBag(SnakeMap *map, Bag *bag, Snake *snake)
+{
+	int map_rows = map->getRow();
+	int map_cols = map->getColumn();
+	int **board = map->getBoard();
+
+	for (int i = 0; i < map_rows; i++)
+	{
+		for (int j = 0; j < map_cols; j++)
+		{
+			if (board[i][j] == 0)
+			{
+				bag->add({i, j});
+			}
+		}
+	}
+
+	for (const auto &seg : snake->getBody())
+	{
+		bag->remove(seg);
+	}
 }
 
-prev_food_pos = {-1, -1};
-food_pos = bag->getRandom();
+// 먹이 생성
+void spawnFood(Bag *bag)
+{
+	if (bag->isEmpty())
+	{
+		prev_food_pos = food_pos;
+		food_pos = {-1, -1};
+		gameOver = true;
+		return;
+	}
+	prev_food_pos = {-1, -1};
+	food_pos = bag->getRandom();
 }
 
-currentDirection = UP;
-// R 아이템 생성 (먹이와 유사하게 bag에서 랜덤 선택)
+// R 아이템 생성
 void spawnR(Bag *bag)
 {
 	if (bag->isEmpty())
-		currentDirection = DOWN;
 	{
 		prev_r_pos = r_item_pos;
 		r_item_pos = {-1, -1};
 		return;
-		currentDirection = LEFT;
 	}
-
 	prev_r_pos = {-1, -1};
 	r_item_pos = bag->getRandom();
-	currentDirection = RIGHT;
 }
-
-// old_tail - 이동 전 꼬리 좌표 (꼬리 지우기용)
-// new_head - 이동 후 머리 좌표
-
-case 'r':
-case 'R':
-undo_request = true;
-break;
 bool logic(SnakeMap *map, Bag *bag, Snake *snake, Point &old_tail, Point &new_head)
 {
+	old_tail = snake->getBody().back();
 	snake->move();
 	new_head = snake->getHead();
 
@@ -524,7 +508,6 @@ void drawDynamicUpdate(SnakeMap *map, Snake *snake, const Point &old_tail, bool 
 
 void input(Snake *snake)
 {
-<<<<<<< HEAD
 	if (_kbhit())
 	{
 		char key = _getch();
@@ -554,39 +537,10 @@ void input(Snake *snake)
 		case 'X':
 			gameOver = true;
 			break;
-		}
-	}
-=======
-	if (_kbhit())
-	{
-		char key = _getch();
-		switch (key)
-		{
-		case 'w':
-		case 'W':
-			snake->changeDirection(UP);
-			break;
-		case 's':
-		case 'S':
-			snake->changeDirection(DOWN);
-			break;
-		case 'a':
-		case 'A':
-			snake->changeDirection(LEFT);
-			break;
-		case 'd':
-		case 'D':
-			snake->changeDirection(RIGHT);
-			break;
-		case 'x':
-		case 'X':
-			gameOver = true;
-			break;
 		case 'r':
 		case 'R':
 			undo_request = true;
 			break;
 		}
 	}
->>>>>>> origin/stack_undoitem_ver3
 }
