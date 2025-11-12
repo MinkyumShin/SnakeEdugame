@@ -15,6 +15,7 @@
 #include "SnakeMap.h"
 #include "Bag.h"
 #include "Snake.h"
+#include "DiffManager.h"
 
 using namespace std;
 
@@ -24,12 +25,13 @@ const char MAP_CHAR = '#';
 const char SNAKE_HEAD_CHAR = '@';
 const char SNAKE_BODY_CHAR = 'o';
 const char FOOD_CHAR = '$';
-const int GAME_SPEED_MS = 100; // 게임 속도 (100ms마다 업데이트)
-
-bool gameOver = false;
+int GAME_SPEED_MS = START;
+int currentDirection = RIGHT;               // 추가: 현재 방향 추적
+const int VERTICAL_SPEED_MULTIPLIER = 2;    // 세로 이동일 때 곱할 값 (조절 가능)
+Point food_pos = {-1, -1};
+Point prev_food_pos = {-1, -1};
 int score = 0;
-Point food_pos = {-1, -1};		// 현재 먹이 위치 (row, col)
-Point prev_food_pos = {-1, -1}; // 이전 프레임 먹이 위치 (잔상 제거용)
+bool gameOver = false;
 
 // 콘솔 커서 위치를 이동시키는 함수
 void gotoXY(int x, int y)
@@ -235,7 +237,26 @@ int main()
 
 		drawDynamicUpdate(&snakeMap, &snake, old_tail, ate);
 
-		sleep_ms(GAME_SPEED_MS);
+		switch(score / 30) //30점마다 난이도 상승
+		{
+			case 0:
+				GAME_SPEED_MS = START;
+				break;
+			case 1:	
+				GAME_SPEED_MS = EASY;
+				break;
+			case 2:
+				GAME_SPEED_MS = MEDIUM;
+				break;
+			default:
+				GAME_SPEED_MS = HARD;
+				break;
+		}
+		int delay_ms = GAME_SPEED_MS;
+		if (currentDirection == UP || currentDirection == DOWN) {
+			delay_ms *= VERTICAL_SPEED_MULTIPLIER; //수직이동시 딜레이
+		}
+		sleep_ms(delay_ms);
 	}
 
 	// 게임 오버
@@ -403,31 +424,35 @@ void drawDynamicUpdate(SnakeMap *map, Snake *snake, const Point &old_tail, bool 
 
 void input(Snake *snake)
 {
-	if (_kbhit())
-	{
-		char key = _getch();
-		switch (key)
-		{
-		case 'w':
-		case 'W':
-			snake->changeDirection(UP);
-			break;
-		case 's':
-		case 'S':
-			snake->changeDirection(DOWN);
-			break;
-		case 'a':
-		case 'A':
-			snake->changeDirection(LEFT);
-			break;
-		case 'd':
-		case 'D':
-			snake->changeDirection(RIGHT);
-			break;
-		case 'x':
-		case 'X':
-			gameOver = true;
-			break;
-		}
-	}
+    if (_kbhit())
+    {
+        char key = _getch();
+        switch (key)
+        {
+        case 'w':
+        case 'W':
+            snake->changeDirection(UP);
+            currentDirection = UP;
+            break;
+        case 's':
+        case 'S':
+            snake->changeDirection(DOWN);
+            currentDirection = DOWN;
+            break;
+        case 'a':
+        case 'A':
+            snake->changeDirection(LEFT);
+            currentDirection = LEFT;
+            break;
+        case 'd':
+        case 'D':
+            snake->changeDirection(RIGHT);
+            currentDirection = RIGHT;
+            break;
+        case 'x':
+        case 'X':
+            gameOver = true;
+            break;
+        }
+    }
 }
