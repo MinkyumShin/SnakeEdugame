@@ -7,17 +7,29 @@
 #include <cstdlib>
 #include <ctime>
 #include "Point.h"
+#include "DSInfoManager.h"
 
 class Bag
 {
 private:
     std::vector<Point> contents;
+    bool initializing = false;
 
 public:
     Bag() { std::srand(static_cast<unsigned int>(std::time(nullptr))); }
 
+    void beginInit() { initializing = true; }
+    void endInit() { initializing = false; }
+
     // 뱀 꼬리가 떠난칸 Bag에 추가
-    void add(const Point &p) { contents.push_back(p); }
+    void add(const Point &p)
+    {
+        contents.push_back(p);
+        if (!initializing)
+        {
+            g_dsInfo.logBagMove("Insert empty cell: (" + std::to_string(p.row) + "," + std::to_string(p.col) + ")");
+        }
+    }
 
     // 뱀 머리가 들어갈 칸 Bag에서 제거
     void remove(const Point &p)
@@ -27,6 +39,7 @@ public:
         {
             *it = contents.back();
             contents.pop_back();
+            g_dsInfo.logBagMove("Remove cell: (" + std::to_string(p.row) + "," + std::to_string(p.col) + ")");
         }
     }
 
@@ -42,6 +55,7 @@ public:
             contents[index] = contents.back();
         }
         contents.pop_back();
+        g_dsInfo.logBag("Random pick: (" + std::to_string(selected_point.row) + "," + std::to_string(selected_point.col) + ")");
         return selected_point;
     }
 

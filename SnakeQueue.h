@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include "Point.h"
+#include "DSInfoManager.h"
 
 class SnakeQueue
 {
@@ -25,6 +26,7 @@ public:
             throw std::overflow_error("SnakeQueue: capacity exceeded");
         }
         dq.push_front(p);
+        g_dsInfo.logQueue("Enqueue head: (" + std::to_string(p.row) + "," + std::to_string(p.col) + ")");
     }
 
     // 꼬리 제거
@@ -32,7 +34,9 @@ public:
     {
         if (dq.empty())
             throw std::underflow_error("SnakeQueue: empty");
+        const Point tailP = dq.back();
         dq.pop_back();
+        g_dsInfo.logQueue("Dequeue tail: (" + std::to_string(tailP.row) + "," + std::to_string(tailP.col) + ")");
     }
 
     // 현재 머리(가장 앞)

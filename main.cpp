@@ -15,7 +15,9 @@
 #include "SnakeMap.h"
 #include "Bag.h"
 #include "Snake.h"
-#include "UndoItem.h" // undo 기능 (선택 브랜치: stack_undoitem_ver3)
+#include "DiffManager.h"   // 난이도/속도 상수 (diff 브랜치)
+#include "UndoItem.h"	   // undo 기능 (선택 브랜치: stack_undoitem_ver3)
+#include "DSInfoManager.h" // 자료구조 설명 모드
 
 using namespace std;
 
@@ -25,10 +27,12 @@ const char MAP_CHAR = '#';
 const char SNAKE_HEAD_CHAR = '@';
 const char SNAKE_BODY_CHAR = 'o';
 const char FOOD_CHAR = '$';
-const char R_CHAR = 'R';			  // R 아이템 문자
-static const int GAME_SPEED_MS = 100; // 단순 고정 속도 (diff 브랜치 난이도 기능 제거)
-int currentDirection = RIGHT;		  // 현재 방향 추적 (방향 표시만 유지)
+const char R_CHAR = 'R';				 // R 아이템 문자
+int GAME_SPEED_MS = START;				 // diff 브랜치의 START 값으로 시작
+const int VERTICAL_SPEED_MULTIPLIER = 2; // 수직 이동 보정 배수
+int currentDirection = RIGHT;			 // 현재 방향 추적
 bool gameOver = false;
+bool paused = false; // P 키 일시정지 상태
 int score = 0;
 Point food_pos = {-1, -1};		// 현재 먹이 위치 (row, col)
 Point prev_food_pos = {-1, -1}; // 이전 프레임 먹이 위치 (잔상 제거용)
@@ -173,6 +177,7 @@ bool logic(SnakeMap *map, Bag *bag, Snake *snake, Point &old_tail, Point &new_he
 void drawStaticMap(SnakeMap *map);
 void drawDynamicUpdate(SnakeMap *map, Snake *snake, const Point &old_tail, bool ate);
 void input(Snake *snake);
+void showDSRuntimeInfo(const Snake *snake);
 
 int main()
 {
@@ -196,6 +201,28 @@ int main()
 #endif
 	CursorView();
 	Screen screen(WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	// 자료구조 설명 모드 설정 (Y/N, 잘못 입력 시 재입력 요구)
+	char dsChoice = 'n';
+	while (true)
+	{
+		cout << "자료구조 설명 모드를 켜시겠습니까? (Y/N): ";
+		cin >> dsChoice;
+		if (dsChoice == 'y' || dsChoice == 'Y')
+		{
+			g_dsInfo.enabled = true;
+			break;
+		}
+		else if (dsChoice == 'n' || dsChoice == 'N')
+		{
+			g_dsInfo.enabled = false;
+			break;
+		}
+		else
+		{
+			cout << "Y 또는 N만 입력해주세요." << endl;
+		}
+	}
 	SnakeMap snakeMap(map_cols, map_rows);
 	snakeMap.initMap(0);
 
@@ -209,10 +236,36 @@ int main()
 
 	// Bag 초기화
 	Bag emptySpaces;
+	emptySpaces.beginInit();
 	initializeBag(&snakeMap, &emptySpaces, &snake);
+	emptySpaces.endInit();
 
 	// 첫 번째 먹이 생성
 	spawnFood(&emptySpaces);
+
+	// 자료구조 개념 설명 메뉴 (선택, 1/2 외에는 재입력 요구)
+	clearScreen();
+	char startChoice = '2';
+	while (true)
+	{
+		cout << "=== EduSnake ===" << endl;
+		cout << "1) 자료구조 개념 보기" << endl;
+		cout << "2) 바로 게임 시작" << endl;
+		cout << "선택 (1/2): ";
+		cin >> startChoice;
+		if (startChoice == '1' || startChoice == '2')
+		{
+			break;
+		}
+		cout << "1 또는 2만 입력해주세요." << endl;
+		clearScreen();
+	}
+	if (startChoice == '1')
+	{
+		clearScreen();
+		g_dsInfo.showConceptMenu();
+		_getch();
+	}
 
 	// (초기에는 R 자동 생성하지 않음 — 이제 먹이를 3개 먹을 때마다 생성)
 	// spawnR(&emptySpaces);
@@ -245,10 +298,73 @@ int main()
 	}
 	gotoXY(0, map_rows);
 	cout << "Score: " << score << " | Length: " << init_body.size() << " | Undo: " << undo_item_count << "  ";
+	if (g_dsInfo.enabled)
+	{
+		gotoXY(0, map_rows + 1);
+		cout << "[P] 일시정지 / Q: DS 모드 토글";
+	}
 
 	while (!gameOver)
 	{
 		input(&snake);
+
+		// DS 모드에서 P로 일시정지: 별도 화면에서 최근 로그를 확인
+		if (g_dsInfo.enabled && paused)
+		{
+			clearScreen();
+			gotoXY(0, 0);
+			cout << "=== DS Runtime Log (최근 자료구조 동작) ===" << '\n';
+			cout << "[Bag 이동] 뱀 이동에 따른 Bag 변화" << '\n';
+			const auto moveLogs = g_dsInfo.getMoveLogs();
+			for (const auto &line : moveLogs)
+			{
+				cout << line << '\n';
+			}
+			cout << '\n';
+			cout << "[Queue/Stack/기타] 먹이 생성, Undo 등" << '\n';
+			const auto logs = g_dsInfo.getRecentLogs();
+			for (const auto &line : logs)
+			{
+				cout << line << '\n';
+			}
+			cout << '\n';
+			cout << "Bag: 빈 칸 관리, Queue: 머리/꼬리, Stack: Undo 상태" << '\n';
+			cout << "P를 다시 누르면 게임 화면으로 돌아갑니다..." << '\n';
+			// 재개될 때까지 입력만 받는다
+			while (paused && !gameOver)
+			{
+				input(&snake);
+				sleep_ms(30);
+			}
+			// 게임 화면 복원
+			clearScreen();
+			drawStaticMap(&snakeMap);
+			const auto &body = snake.getBody();
+			for (size_t i = 0; i < body.size(); ++i)
+			{
+				const Point &p = body[i];
+				gotoXY(p.col, p.row);
+				putchar(i == 0 ? SNAKE_HEAD_CHAR : SNAKE_BODY_CHAR);
+			}
+			if (food_pos.row != -1)
+			{
+				gotoXY(food_pos.col, food_pos.row);
+				putchar(FOOD_CHAR);
+			}
+			if (r_item_pos.row != -1)
+			{
+				gotoXY(r_item_pos.col, r_item_pos.row);
+				putchar(R_CHAR);
+			}
+			gotoXY(0, map_rows);
+			cout << "Score: " << score << " | Length: " << snake.getBody().size() << " | Undo: " << undo_item_count << "  ";
+			if (g_dsInfo.enabled)
+			{
+				gotoXY(0, map_rows + 1);
+				cout << "[P] 일시정지 / Q: DS 모드 토글";
+			}
+			continue;
+		}
 
 		Point old_tail = snake.getBody().back();
 		Point new_head;
@@ -290,7 +406,28 @@ int main()
 			undo_request = false;
 		}
 
-		sleep_ms(GAME_SPEED_MS); // 고정 속도 딜레이
+		// 점수 기반 난이도와 이동 방향에 따른 속도 보정
+		switch (score / 30) // 30점마다 난이도 상승
+		{
+		case 0:
+			GAME_SPEED_MS = START;
+			break;
+		case 1:
+			GAME_SPEED_MS = EASY;
+			break;
+		case 2:
+			GAME_SPEED_MS = MEDIUM;
+			break;
+		default:
+			GAME_SPEED_MS = HARD;
+			break;
+		}
+		int delay_ms = GAME_SPEED_MS;
+		if (currentDirection == UP || currentDirection == DOWN)
+		{
+			delay_ms *= VERTICAL_SPEED_MULTIPLIER; // 수직 이동 시 딜레이 보정
+		}
+		sleep_ms(delay_ms);
 	}
 
 	// 게임 오버
@@ -504,6 +641,11 @@ void drawDynamicUpdate(SnakeMap *map, Snake *snake, const Point &old_tail, bool 
 	// 상태 라인 갱신
 	gotoXY(0, map_rows);
 	cout << "Score: " << score << " | Length: " << body.size() << " | Undo: " << undo_item_count << "  ";
+	if (g_dsInfo.enabled)
+	{
+		gotoXY(0, map_rows + 1);
+		cout << "[P] 일시정지 / Q: DS 모드 토글          ";
+	}
 }
 
 void input(Snake *snake)
@@ -541,6 +683,20 @@ void input(Snake *snake)
 		case 'R':
 			undo_request = true;
 			break;
+		case 'q':
+		case 'Q':
+			g_dsInfo.toggle();
+			break;
+		case 'p':
+		case 'P':
+			if (g_dsInfo.enabled)
+			{
+				paused = !paused;
+			}
+			break;
 		}
 	}
 }
+
+// DS 설명 모드에서 일시정지 시에는 별도 화면에서 로그를 보여주므로
+// drawDSLogsArea, showDSRuntimeInfo는 더 이상 사용하지 않는다.
