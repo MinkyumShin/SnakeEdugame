@@ -42,6 +42,33 @@ void DSInfoManager::logBagMove(const std::string &msg)
     pushLog(moveLogs, "[Bag] " + msg);
 }
 
+void DSInfoManager::showModeSettingMenu()
+{
+    // 자료구조 설명 모드 설정 (Y/N, 잘못 입력 시 재입력 요구)
+    char dsChoice = 'n';
+    while (true)
+    {
+        std::cout << "자료구조 설명 모드를 켜시겠습니까? (Y/N): ";
+        std::cin >> dsChoice;
+        if (dsChoice == 'y' || dsChoice == 'Y')
+        {
+            this->enabled = true;
+            break;
+        }
+        else if (dsChoice == 'n' || dsChoice == 'N')
+        {
+            this->enabled = false;
+            break;
+        }
+        else
+        {
+            std::cout << "Y 또는 N만 입력해주세요." << std::endl;
+        }
+    }
+    std::cout << "자료구조 설명 모드가 " << (this->enabled ? "켜졌습니다." : "꺼졌습니다.") << std::endl;
+    std::cout << "계속하려면 아무 키나 누르세요..." << std::endl;
+}
+
 std::deque<std::string> DSInfoManager::getRecentLogs() const
 {
     return recentLogs;
@@ -101,5 +128,5 @@ void DSInfoManager::showConceptMenu() const
     cout << "[Queue], [Stack], [Bag] Prefix로 출력됩니다.\n";
     cout << "(예: [Queue] Enqueue: (x,y))\n\n";
 
-    cout << "계속하려면 아무 키나 누르세요..." << endl;
+    cout << "계속하려면 아무 키나 누르세요..." << std::endl;
 }

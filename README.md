@@ -3,7 +3,7 @@
 Embarcadero_Dev-Cpp_6.3_TDM-GCC_9.2
 다운로드 링크: https://github.com/Embarcadero/Dev-Cpp/releases
 
-# 콤파일 방법
+# 콤파일 방법1
 1. Embarcadero Dev-Cpp 열기
 2. 게임풀더에서 `main.cpp`열기
 3. 매뉴열에서 콤파일아이건을 클릭 (F11 클릭도 됨)
@@ -11,6 +11,13 @@ Embarcadero_Dev-Cpp_6.3_TDM-GCC_9.2
 5. 터미널화면에서 사이즈 성정 (예: 120 30 입력후 enter)
 6. 이동방법: a w s d 키를 사용하기
 
+# 콤파일 방법2(g++ 사용)
+g++ main.cpp src/DSInfoManager.cpp -I include -o program
 
+# 기타
 스택기능 구현-먹이를 3번 먹으면 되돌리기 아이템 생성
 r 버튼 누르면 되돌리기 실행
+
+ 
+ 
+

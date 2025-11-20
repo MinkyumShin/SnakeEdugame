@@ -1,8 +1,10 @@
-﻿#include <iostream>
+#pragma once
+#include <iostream>
 #include <stdexcept>
 #include <vector>
 #include "Point.h"
 #include "DSInfoManager.h"
+
 
 // GameState: 스택에 저장될 게임 상태 (뱀 몸통, 방향, 점수, 먹이/아이템 위치, Bag 내용)
 struct GameState
@@ -61,8 +63,10 @@ public:
 };
 
 // undo item count
-int undo_item_count = 0;
+extern int undo_item_count; // keep external in header; define in .cpp if needed
+// Use functions provided elsewhere for save_state/use_undo_item
 MyStack state_history;
+
 
 void save_state(const GameState &current_state)
 {

@@ -1,3 +1,4 @@
+#pragma once
 // Cleaned up Bag.h to remove merge markers and use Point.h
 #ifndef BAG_H
 #define BAG_H
@@ -7,7 +8,6 @@
 #include <cstdlib>
 #include <ctime>
 #include "Point.h"
-#include "DSInfoManager.h"
 
 class Bag
 {

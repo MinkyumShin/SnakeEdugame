@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include <deque>
 
@@ -15,6 +14,7 @@ public:
     void logStack(const std::string &msg);
     void logBag(const std::string &msg);
     void logBagMove(const std::string &msg);
+    void showModeSettingMenu();
 
     // 최근 DS 로그 N개 반환용 (메인에서 하단 고정 영역 렌더링)
     std::deque<std::string> getRecentLogs() const;
