@@ -66,8 +66,8 @@ bool ScoreBoard::add_score(const std::string& name, int score) {
 }
 
 void ScoreBoard::display_score_board() {
-    std::cout << "========= Score Board =========" << std::endl << std::endl << std::endl;
-	std::cout << "Player Name \t\tScore" << std::endl;
+    std::cout << "========= 스코어 보드 =========" << std::endl << std::endl << std::endl;
+	std::cout << "플레이어 이름 \t\t점수" << std::endl;
 	std::cout << "-------------------------------" << std::endl;
     for (const auto& entry : scores) 
         std::cout << entry.player_name << "\t\t\t" << entry.score << std::endl;
