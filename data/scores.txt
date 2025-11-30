@@ -4,8 +4,6 @@ Charlie,120
 Dave,180
 pro20,10
 hs,10
-asdbobasdf,20
-[D[A[Basdf,20
-wminkyum1,70
 wd,70
-minkyum12!2,10
+mk,60
+minkyum,40

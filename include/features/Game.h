@@ -399,6 +399,11 @@ void startGame()
 	cout << "Final Score: " << score << endl;
 	gotoXY(0, map_rows + 2);
 
+#if !defined(_WIN32)
+	// 게임이 끝났으니 터미널 입력 모드를 원래대로 복구
+	disableRawMode();
+#endif
+
 	cin.clear();
 	cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
