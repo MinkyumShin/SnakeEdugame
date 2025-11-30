@@ -2,3 +2,8 @@ Alice,150
 Bob,200
 Charlie,120
 Dave,180
+pro20,10
+hs,10
+wd,70
+mk,60
+minkyum,40

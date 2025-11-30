@@ -1,3 +1,0 @@
-/usr/bin/ld: /tmp/ccojmLR6.o: in function `main':
-UndoItem.cpp:(.text+0x98): multiple definition of `main'; /tmp/ccjep39V.o:Bag.cpp:(.text+0x0): first defined here
-collect2: error: ld returned 1 exit status
