@@ -34,13 +34,39 @@ menu_check:
     {
         clearScreen();
         startGame();
-        string player_name;
-        std::cout << "점수를 저장하시겠습니까? 저장하려면 플레이어 이름을 입력하세요:  "; // add score save, not required
-        std::cin >> player_name;
-        // check empty name
-        if (!player_name.empty()) 
-            score_board.add_score(player_name, score);
-        std::cout << "계속하려면 아무 키나 누르세요..." << std::endl; 
+        char save_choice = 0;
+        while (true)
+        {
+            std::cout << "점수를 저장하시겠습니까? (Y/N): ";
+            std::cin >> save_choice;
+            if (save_choice == 'Y' || save_choice == 'y' || save_choice == 'N' || save_choice == 'n')
+                break;
+            std::cout << "Y 또는 N만 입력해주세요." << std::endl;
+        }
+
+        if (save_choice == 'Y' || save_choice == 'y')
+        {
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::string player_name;
+            std::cout << "플레이어 이름을 입력하세요: ";
+            std::getline(std::cin, player_name);
+
+            if (!player_name.empty())
+            {
+                score_board.add_score(player_name, score);
+                std::cout << "점수가 저장되었습니다." << std::endl;
+            }
+            else
+            {
+                std::cout << "이름이 비어 있어 점수를 저장하지 않았습니다." << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "점수를 저장하지 않고 종료합니다." << std::endl;
+        }
+
+        std::cout << "계속하려면 아무 키나 누르세요..." << std::endl;
         _getch();
     }
     else if (selected_menu == '2')
