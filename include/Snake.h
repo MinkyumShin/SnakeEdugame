@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include "Point.h"
+#include "queue.h"
 
 enum Direction
 {
@@ -14,7 +15,7 @@ enum Direction
 class Snake
 {
 private:
-    std::vector<Point> body;
+    Queue<Point> body;
     Direction current_dir;
     bool grow_flag;
 
@@ -22,9 +23,10 @@ public:
     // start at (col, row)
     Snake(int start_col, int start_row) : current_dir(RIGHT), grow_flag(false)
     {
-        body.push_back({start_row, start_col});
-        body.push_back({start_row, start_col - 1});
-        body.push_back({start_row, start_col - 2});
+        // enqueue in order: head, next, tail -> front() == head
+        body.enqueue({start_row, start_col});
+        body.enqueue({start_row, start_col - 1});
+        body.enqueue({start_row, start_col - 2});
     }
 
     void changeDirection(Direction new_dir)
@@ -57,7 +59,7 @@ public:
             new_head.col++;
             break;
         }
-        body.insert(body.begin(), new_head);
+        body.push_front(new_head);
         if (!grow_flag)
         {
             body.pop_back();
@@ -71,13 +73,21 @@ public:
     void grow() { grow_flag = true; }
 
     Point getHead() const { return body.front(); }
-    const std::vector<Point> &getBody() const { return body; }
+    // 기존 코드와 호환되도록 std::vector<Point>를 반환한다 (복사)
+    std::vector<Point> getBody() const
+    {
+        std::vector<Point> v;
+        v.reserve(body.size());
+        for (const auto &p : body)
+            v.push_back(p);
+        return v;
+    }
     Direction getDirection() const { return current_dir; }
 
     bool checkSelfCollision() const
     {
         const Point &head = body.front();
-        for (size_t i = 1; i < body.size(); ++i)
+        for (std::size_t i = 1; i < body.size(); ++i)
         {
             if (head == body[i])
                 return true;
@@ -86,7 +96,13 @@ public:
     }
 
     // --- 복원용 설정자 추가 ---
-    void setBody(const std::vector<Point> &new_body) { body = new_body; }
+    void setBody(const std::vector<Point> &new_body)
+    {
+        body.clear();
+        // new_body[0] == head, enqueue in order so front()==head
+        for (const auto &p : new_body)
+            body.enqueue(p);
+    }
     void setDirection(Direction dir) { current_dir = dir; }
     void setGrowFlag(bool f) { grow_flag = f; }
 };

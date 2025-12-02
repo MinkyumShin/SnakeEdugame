@@ -16,7 +16,7 @@ public:
         : data_field(init_data), link_fore(init_fore), link_back(init_back) {}
 
     // 접근자
-    Item data() const { return data_field; }
+    const Item &data() const { return data_field; }
     Item &data() { return data_field; }
     dnode<Item> *fore_link() const { return link_fore; }
     dnode<Item> *back_link() const { return link_back; }

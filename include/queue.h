@@ -116,6 +116,14 @@ public:
         return head_ptr->data();
     }
 
+    // const 버전의 front
+    const Item &front() const
+    {
+        if (empty())
+            throw std::underflow_error("Queue is empty!");
+        return head_ptr->data();
+    }
+
     // back: 큐의 맨 뒤 원소 접근
     Item &back()
     {
@@ -124,12 +132,112 @@ public:
         return tail_ptr->data();
     }
 
+    // const 버전의 back
+    const Item &back() const
+    {
+        if (empty())
+            throw std::underflow_error("Queue is empty!");
+        return tail_ptr->data();
+    }
+
+    // push_front: 리스트의 앞에 원소 삽입 (O(1))
+    void push_front(const Item &entry)
+    {
+        dnode<Item> *new_node = new dnode<Item>(entry, head_ptr, nullptr);
+        if (head_ptr != nullptr)
+        {
+            head_ptr->set_back_link(new_node);
+        }
+        else
+        {
+            tail_ptr = new_node;
+        }
+        head_ptr = new_node;
+        ++used;
+    }
+
+    // pop_back: 리스트의 마지막 원소 제거 (O(1))
+    bool pop_back()
+    {
+        if (empty())
+            return false;
+        if (list_tail_remove(head_ptr, tail_ptr))
+        {
+            --used;
+            return true;
+        }
+        return false;
+    }
+
     // 전체 비우기
     void clear()
     {
         list_clear(head_ptr, tail_ptr);
         used = 0;
     }
+
+    // operator[]: 인덱스 접근 (O(n))
+    Item &operator[](size_type index)
+    {
+        if (index >= used)
+            throw std::out_of_range("Queue index out of range");
+        dnode<Item> *cursor = head_ptr;
+        for (size_type i = 0; i < index; ++i)
+            cursor = cursor->fore_link();
+        return cursor->data();
+    }
+
+    const Item &operator[](size_type index) const
+    {
+        if (index >= used)
+            throw std::out_of_range("Queue index out of range");
+        const dnode<Item> *cursor = head_ptr;
+        for (size_type i = 0; i < index; ++i)
+            cursor = cursor->fore_link();
+        return cursor->data();
+    }
+
+    // iterator 지원: range-based for 가능
+    class const_iterator
+    {
+    public:
+        explicit const_iterator(const dnode<Item> *ptr) : node_ptr(ptr) {}
+        const Item &operator*() const { return node_ptr->data(); }
+        const_iterator &operator++()
+        {
+            if (node_ptr)
+                node_ptr = node_ptr->fore_link();
+            return *this;
+        }
+        bool operator!=(const const_iterator &other) const { return node_ptr != other.node_ptr; }
+
+    private:
+        const dnode<Item> *node_ptr;
+    };
+
+    class iterator
+    {
+    public:
+        explicit iterator(dnode<Item> *ptr) : node_ptr(ptr) {}
+        Item &operator*() const { return node_ptr->data(); }
+        iterator &operator++()
+        {
+            if (node_ptr)
+                node_ptr = node_ptr->fore_link();
+            return *this;
+        }
+        bool operator!=(const iterator &other) const { return node_ptr != other.node_ptr; }
+
+    private:
+        dnode<Item> *node_ptr;
+    };
+
+    iterator begin() { return iterator(head_ptr); }
+    iterator end() { return iterator(nullptr); }
+    const_iterator begin() const { return const_iterator(head_ptr); }
+    const_iterator end() const { return const_iterator(nullptr); }
+    const_iterator cbegin() const { return const_iterator(head_ptr); }
+    const_iterator cend() const { return const_iterator(nullptr); }
 
     // 큐 상태 출력
     void show_contents(std::ostream &out = std::cout) const
